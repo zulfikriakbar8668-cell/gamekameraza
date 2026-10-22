@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Kamera Benar Salah</title>
+<style>
+  /* Pengaturan dasar seluruh halaman */
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    color: white; text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.8);
+    background-color: #1a1a2e;
+  }
+
+  /* ===== Layar pengaturan ===== */
+  #setup-screen {
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 10; overflow-y: auto;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 30px 16px; background: linear-gradient(160deg, #10162f, #1e3a8a);
+  }
+  .setup-box {
+    background: #fff; color: #1f2937; text-shadow: none;
+    width: 100%; max-width: 640px; border-radius: 18px; padding: 26px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .setup-box h2 { margin: 0; text-align: center; color: #1e3a8a; }
+  .sub { margin: -8px 0 0; text-align: center; color: #6b7280; font-size: 14px; }
+  .hint { font-size: 13px; color: #6b7280; text-align: center; margin: 0; }
+
+  /* Kolom isian */
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .input-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; }
+  .input-group label { font-weight: 600; font-size: 14px; }
+  .input-group input {
+    padding: 12px 14px; font-size: 16px; font-family: inherit;
+    border: 2px solid #d1d5db; border-radius: 10px;
+  }
+  .input-group input:focus { outline: none; border-color: #3b82f6; }
+
+  /* Kotak centang suara */
+  .cek { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer; }
+  .cek input { width: 20px; height: 20px; margin-top: 1px; flex-shrink: 0; }
+  .cek small { display: block; color: #6b7280; margin-top: 2px; }
+
+  /* Tombol pilihan kunci jawaban */
+  .pilihan-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn-pilih {
+    padding: 12px; font-size: 15px; font-weight: 700; font-family: inherit;
+    border-radius: 10px; cursor: pointer;
+    border: 2px solid #d1d5db; background: #f9fafb; color: #6b7280;
+  }
+  .btn-pilih.aktif { background: #2563eb; border-color: #1d4ed8; color: #fff; }
+
+  /* Tombol umum */
+  .btn {
+    padding: 13px; font-size: 16px; font-weight: 700; font-family: inherit;
+    border: none; border-radius: 10px; cursor: pointer; color: #fff;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn-tambah { background: #3b82f6; }
+  .btn-reset { background: #6b7280; }
+  .btn-mulai { background: #16a34a; font-size: 19px; padding: 16px; }
+  .btn-keluar { background: #dc2626; }
+  .btn-teks {
+    align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer;
+    color: #2563eb; font-family: inherit; font-size: 14px; font-weight: 600;
+  }
+  .btn-teks:hover { text-decoration: underline; }
+  button:focus-visible { outline: 3px solid #f1c40f; outline-offset: 3px; }
+
+  /* Kotak daftar soal */
+  .daftar-header { font-weight: 700; }
+  #daftar-soal {
+    list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto;
+    border: 2px solid #e5e7eb; border-radius: 10px; min-height: 48px;
+  }
+
+  /* ===== Baris di daftar soal ===== */
+  #daftar-soal li {
+    display: flex; gap: 10px; align-items: center; padding: 10px 12px;
+    border-bottom: 1px solid #e5e7eb; font-size: 14px;
+  }
+  #daftar-soal li:last-child { border-bottom: none; }
+  #daftar-soal .teks { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  #daftar-soal .teks small { display: block; color: #6b7280; margin-top: 2px; }
+  .tag {
+    font-size: 11px; font-weight: 800; padding: 3px 8px; background: #2563eb;
+    border-radius: 20px; color: #fff; flex-shrink: 0;
+  }
+  .btn-hapus {
+    background: none; border: 1px solid #fca5a5; color: #dc2626;
+    border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 13px; flex-shrink: 0;
+  }
+  .kosong { padding: 16px; text-align: center; color: #9ca3af; }
+
+  /* ===== Kotak pesan ===== */
+  #modal {
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 20; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.6); padding: 16px;
+  }
+  #modal-box {
+    background: #fff; color: #1f2937; text-shadow: none; border-radius: 14px;
+    padding: 22px; width: 100%; max-width: 400px; text-align: center;
+  }
+  #modal-title { margin: 0 0 8px; color: #1e3a8a; }
+  #modal-text { margin: 0 0 18px; }
+
+  /* ===== Kamera (dibalik seperti cermin) ===== */
+  #webcam {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    object-fit: cover; z-index: 0; transform: scaleX(-1); display: none;
+  }
+
+  /* ===== Warna sisi: tipis saat bermain, biru/merah saat jawaban tampil ===== */
+  .panel {
+    position: fixed; top: 0; width: 50vw; height: 100vh; z-index: 1; display: none;
+    background-color: rgba(15, 23, 42, 0.12);
+    transition: background-color 0.4s, box-shadow 0.4s;
+  }
+  #panel-a { left: 0; border-right: 3px dashed rgba(255, 255, 255, 0.75); }
+  #panel-b { right: 0; }
+  .panel.benar {
+    background-color: rgba(37, 99, 235, 0.38);
+    box-shadow: inset 0 0 0 12px rgba(37, 99, 235, 0.95);  /* bingkai biru tebal */
+  }
+  .panel.salah {
+    background-color: rgba(220, 38, 38, 0.38);
+    box-shadow: inset 0 0 0 12px rgba(220, 38, 38, 0.95);  /* bingkai merah tebal */
+  }
+  /* Label kecil di bawah setiap sisi saat jawaban tampil */
+  .panel.benar::after, .panel.salah::after {
+    position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%);
+    padding: 8px 26px; border-radius: 40px; font-size: clamp(18px, 2vw, 34px);
+    font-weight: 900; letter-spacing: 2px; text-shadow: none;
+  }
+  .panel.benar::after { content: "BENAR"; background: #2563eb; }
+  .panel.salah::after { content: "SALAH"; background: #dc2626; }
+
+  /* ===== Aba-aba "Bersiap 3, 2, 1" ===== */
+  #bersiap {
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 6; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(10, 14, 30, 0.45); pointer-events: none;
+  }
+  #bersiap small { font-size: clamp(24px, 3vw, 48px); font-weight: 800; letter-spacing: 6px; }
+  #angka-bersiap { font-size: clamp(120px, 22vh, 260px); font-weight: 900; color: #facc15; }
+
+  /* Kursor tetikus disembunyikan saat tidak digerakkan */
+  body.kursor-sembunyi, body.kursor-sembunyi * { cursor: none !important; }
+
+  /* ===== Pita atas ===== */
+  #pita {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 2; display: none;
+    background: rgba(10, 14, 30, 0.86); border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 2vw 0;
+  }
+  #bilah {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap; font-size: 15px;
+  }
+  #soal-counter { color: #93c5fd; font-weight: bold; letter-spacing: 1px; }
+  #kendali { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  #info-waktu { color: #cbd5e1; margin-right: 6px; }
+  .tombol-kecil {
+    font-family: inherit; font-size: 14px; font-weight: 600; color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px; padding: 5px 10px; cursor: pointer; text-shadow: none;
+  }
+  .tombol-kecil:hover { background: rgba(255, 255, 255, 0.2); }
+  .tombol-kecil.keluar { border-color: #f87171; color: #fecaca; }
+
+  /* Baris utama: pilihan A | soal | pilihan B */
+  #baris-utama {
+    display: grid; grid-template-columns: 1fr 2.2fr 1fr; gap: 1.5vw; align-items: stretch;
+    padding: 10px 0 52px;
+    padding-bottom: calc(clamp(64px, 6.5vw, 120px) / 2 + 14px); /* ruang lingkaran angka */
+  }
+  #pita.saat-jawaban #baris-utama { padding-bottom: 18px; } /* lingkaran disembunyikan */
+  .pilihan {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+    border: 3px solid rgba(255, 255, 255, 0.6); border-radius: 16px;
+    background: rgba(255, 255, 255, 0.06); font-size: clamp(18px, 2vw, 36px); font-weight: 800;
+    overflow-wrap: anywhere; transition: background-color 0.3s, border-color 0.3s;
+  }
+  #pilihan-b { flex-direction: row-reverse; text-align: right; }
+  .huruf {
+    flex-shrink: 0; width: 1.7em; height: 1.7em; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; color: #111827; text-shadow: none; font-weight: 900;
+  }
+  .pilihan.benar { background: #2563eb; border-color: #bfdbfe; }
+  .pilihan.salah { background: #b91c1c; border-color: #fecaca; }
+  #tengah { text-align: center; min-width: 0; align-self: center; }
+  #question-text { font-size: clamp(18px, 2.3vw, 42px); font-weight: bold; line-height: 1.25; }
+  #question-text.panjang { font-size: clamp(16px, 1.8vw, 32px); }
+  #question-text.sangat-panjang { font-size: clamp(14px, 1.45vw, 26px); }
+
+  /* Garis waktu tipis dan lingkaran angka di tepi bawah pita */
+  #garis-waktu {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+    background: rgba(255, 255, 255, 0.15);
+  }
+  #isi-garis { height: 100%; width: 100%; background: #facc15; transition: width 1s linear; }
+  #isi-garis.akhir { background: #f87171; }
+  #hitung-mundur {
+    position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%);
+    width: clamp(64px, 6.5vw, 120px); height: clamp(64px, 6.5vw, 120px);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: rgba(10, 14, 30, 0.92); border: 5px solid #facc15; color: #facc15;
+    font-size: clamp(28px, 3.2vw, 58px); font-weight: 900;
+  }
+  #hitung-mundur.akhir { color: #f87171; border-color: #f87171; animation: denyut 1s infinite; }
+  @keyframes denyut { 50% { transform: translate(-50%, 50%) scale(1.12); } }
+
+  /* ===== Pengumuman jawaban di dalam pita atas ===== */
+  #pengumuman {
+    display: none; margin-top: 8px; color: #93c5fd;
+    font-size: clamp(24px, 3vw, 54px); font-weight: 900;
+  }
+  #pengumuman-lanjut {
+    display: none; margin-top: 4px; color: #e2e8f0;
+    font-size: clamp(15px, 1.3vw, 22px);
+  }
+
+  /* ===== Jendela keluar dan layar akhir ===== */
+  #dialog-keluar, #end-screen {
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: none;
+    align-items: center; justify-content: center; padding: 30px 16px;
+  }
+  #dialog-keluar { z-index: 15; background: rgba(0, 0, 0, 0.65); }
+  #dialog-keluar .setup-box { max-width: 460px; text-align: center; }
+  #end-screen { z-index: 10; background: linear-gradient(160deg, #10162f, #1e3a8a); }
+  .skor-akhir { font-size: 56px; font-weight: 900; text-align: center; color: #1e3a8a; margin: 0; }
+
+  /* ===TEMPEL CSS DI ATAS BARIS INI=== */
+</style>
+</head>
+<body>
+
+<!-- ===== LAYAR PENGATURAN (tempat menyusun soal) ===== -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <h2>&#128247; Game Kamera Benar Salah</h2>
+    <p class="sub">Susun soal pilihan A atau B, atur waktu, lalu mulai permainan</p>
+
+    <div class="input-group">
+      <label for="input-pertanyaan">Soal baru:</label>
+      <input type="text" id="input-pertanyaan" placeholder="Ketik soal di sini...">
+    </div>
+    <div class="row">
+      <div class="input-group">
+        <label for="input-a">Pilihan A (sisi kiri):</label>
+        <input type="text" id="input-a" placeholder="Teks pilihan A">
+      </div>
+      <div class="input-group">
+        <label for="input-b">Pilihan B (sisi kanan):</label>
+        <input type="text" id="input-b" placeholder="Teks pilihan B">
+      </div>
+    </div>
+    <div class="pilihan-container">
+      <button id="kunci-a" class="btn-pilih aktif" onclick="setKunci('A')">Kunci: A</button>
+      <button id="kunci-b" class="btn-pilih" onclick="setKunci('B')">Kunci: B</button>
+    </div>
+    <button class="btn btn-tambah" onclick="tambahSoal()">+ Tambah Soal</button>
+
+    <div class="row">
+      <div class="input-group">
+        <label for="timer-input">Waktu menjawab (detik):</label>
+        <input type="number" id="timer-input" value="15" min="5" max="120">
+      </div>
+      <div class="input-group">
+        <label for="tampil-input">Lama tampil jawaban (detik):</label>
+        <input type="number" id="tampil-input" value="5" min="2" max="30">
+      </div>
+    </div>
+    <label class="cek" for="suara-input">
+      <input type="checkbox" id="suara-input" checked>
+      <span><b>Suara permainan</b>
+        <small>Bunyi aba-aba, detik terakhir, waktu habis, dan pengumuman jawaban.</small></span>
+    </label>
+    <button class="btn-teks" onclick="kembalikanBawaan()">
+      &#8634; Kembalikan pengaturan bawaan (15 detik, 5 detik, suara hidup)</button>
+
+    <div class="daftar-header">Daftar Soal (<span id="jumlah-soal">0</span>)</div>
+    <ul id="daftar-soal"></ul>
+
+    <button class="btn btn-reset" onclick="muatUlangSoalBawaan()">Kembalikan Soal Contoh</button>
+    <button class="btn btn-mulai" onclick="mulaiGame()">&#9654; Mulai Game</button>
+    <p class="hint">Cara bermain: baca soal, loncat ke sisi A (kiri) atau B (kanan), lalu diam
+      saat waktu habis. Saat jawaban tampil, sentuh layar atau tekan Spasi untuk lanjut.</p>
+  </div>
+</div>
+
+<!-- ===== KOTAK PESAN ===== -->
+<div id="modal">
+  <div id="modal-box">
+    <h3 id="modal-title">Informasi</h3>
+    <p id="modal-text"></p>
+    <button class="btn btn-tambah" style="width:100%" onclick="tutupModal()">OK</button>
+  </div>
+</div>
+
+<!-- ===== ARENA PERMAINAN ===== -->
+<!-- Gambar dari kamera sebagai latar -->
+<video id="webcam" autoplay playsinline muted></video>
+
+<!-- Warna sisi kiri (A) dan kanan (B) -->
+<div id="panel-a" class="panel"></div>
+<div id="panel-b" class="panel"></div>
+
+<!-- Pita atas: semua informasi dikumpulkan di sini agar pemain tetap terlihat -->
+<div id="pita">
+  <div id="bilah">
+    <span id="soal-counter">SOAL 1 / 1</span>
+    <div id="kendali">
+      <span id="info-waktu">Waktu per soal: 15 detik</span>
+      <button class="tombol-kecil" onclick="ubahWaktu(-5)">&minus;5 detik</button>
+      <button class="tombol-kecil" onclick="ubahWaktu(5)">+5 detik</button>
+      <button class="tombol-kecil" onclick="waktuBawaan()">&#8634; Bawaan</button>
+      <button class="tombol-kecil" id="tombol-suara" onclick="aturSuara()">Suara: Hidup</button>
+      <button class="tombol-kecil keluar" onclick="mintaKeluar()">&#10005; Keluar</button>
+    </div>
+  </div>
+  <div id="baris-utama">
+    <div class="pilihan" id="pilihan-a"><span class="huruf">A</span><span id="teks-a"></span></div>
+    <div id="tengah">
+      <div id="question-text">Memuat soal...</div>
+      <!-- Tempat pengumuman jawaban (dipakai di Tahap 5) -->
+      <div id="pengumuman"></div>
+      <div id="pengumuman-lanjut"></div>
+    </div>
+    <div class="pilihan" id="pilihan-b"><span class="huruf">B</span><span id="teks-b"></span></div>
+  </div>
+  <div id="garis-waktu"><div id="isi-garis"></div></div>
+  <div id="hitung-mundur">15</div>
+</div>
+
+<!-- Aba-aba sebelum soal pertama -->
+<div id="bersiap"><small>Bersiap</small><span id="angka-bersiap">3</span></div>
+
+<!-- ===== JENDELA KONFIRMASI KELUAR ===== -->
+<div id="dialog-keluar">
+  <div class="setup-box">
+    <h2>Keluar dari permainan?</h2>
+    <p class="hint">Waktu dihentikan sementara selama jendela ini terbuka.</p>
+    <button class="btn btn-mulai" onclick="tutupDialogKeluar()">Lanjutkan Bermain</button>
+    <button class="btn btn-keluar" onclick="kembaliKeMenu()">Keluar ke Pengaturan</button>
+  </div>
+</div>
+
+<!-- ===== LAYAR AKHIR ===== -->
+<div id="end-screen">
+  <div class="setup-box">
+    <h2>&#127937; Permainan Selesai</h2>
+    <p class="skor-akhir" id="skor-akhir">0</p>
+    <p class="hint" id="rincian-akhir"></p>
+    <button class="btn btn-mulai" onclick="mulaiGame()">Main Lagi</button>
+    <button class="btn btn-reset" onclick="kembaliKeMenu()">Kembali ke Pengaturan</button>
+  </div>
+</div>
+
+<!-- ===TEMPEL HTML DI ATAS BARIS INI=== -->
+
+<script>
+  // ===== TAHAP 3: DAFTAR SOAL DAN PENGATURAN =====
+  // Soal contoh. a = pilihan kiri, b = pilihan kanan, kunci = pilihan yang benar
+  const soalContoh = [
+    { pertanyaan: "Dari arah mana matahari terbit?",
+      a: "Timur", b: "Barat", kunci: "A" },
+    { pertanyaan: "Apa lambang negara Indonesia?",
+      a: "Burung Merak", b: "Garuda Pancasila", kunci: "B" },
+    { pertanyaan: "Ikan paus termasuk kelompok hewan apa?",
+      a: "Mamalia", b: "Ikan", kunci: "A" },
+    { pertanyaan: "Apa mata uang resmi Jepang?",
+      a: "Won", b: "Yen", kunci: "B" }
+  ];
+  const KUNCI_SIMPAN = 'soalGameKameraAB'; // nama "laci" penyimpanan di peramban
+
+  let daftarSoal = bacaSoalTersimpan(); // semua soal yang dipakai game
+  let kunciBaru = 'A';                  // kunci untuk soal yang akan ditambahkan
+
+  // Ambil soal yang pernah disimpan. Jika belum ada, pakai soal contoh.
+  function bacaSoalTersimpan() {
+    try {
+      const data = localStorage.getItem(KUNCI_SIMPAN);
+      if (data) return JSON.parse(data);
+    } catch (e) {}
+    return JSON.parse(JSON.stringify(soalContoh)); // salinan soal contoh
+  }
+
+  // Simpan daftar soal ke peramban agar tidak hilang saat halaman ditutup
+  function simpanSoal() {
+    try { localStorage.setItem(KUNCI_SIMPAN, JSON.stringify(daftarSoal)); } catch (e) {}
+  }
+
+  // Menampilkan dan menutup kotak pesan
+  function tampilkanModal(pesan, judul) {
+    document.getElementById('modal-title').innerText = judul || "Informasi";
+    document.getElementById('modal-text').innerText = pesan;
+    document.getElementById('modal').style.display = 'flex';
+  }
+  function tutupModal() {
+    document.getElementById('modal').style.display = 'none';
+  }
+
+  // Mengganti pilihan kunci jawaban (tombol biru menandai kunci yang dipilih)
+  function setKunci(pilihan) {
+    kunciBaru = pilihan;
+    const tombolA = document.getElementById('kunci-a');
+    const tombolB = document.getElementById('kunci-b');
+    tombolA.className = 'btn-pilih' + (pilihan === 'A' ? ' aktif' : '');
+    tombolB.className = 'btn-pilih' + (pilihan === 'B' ? ' aktif' : '');
+  }
+
+  function tambahSoal() {
+    const kotakSoal = document.getElementById('input-pertanyaan');
+    const kotakA = document.getElementById('input-a');
+    const kotakB = document.getElementById('input-b');
+    const soal = kotakSoal.value.trim();
+    const a = kotakA.value.trim(), b = kotakB.value.trim();
+    if (soal === "" || a === "" || b === "") {
+      tampilkanModal("Soal, pilihan A, dan pilihan B wajib diisi semua!", "Peringatan");
+      return;
+    }
+    daftarSoal.push({ pertanyaan: soal, a: a, b: b, kunci: kunciBaru });
+    simpanSoal();
+    kotakSoal.value = ""; kotakA.value = ""; kotakB.value = "";
+    kotakSoal.focus(); // siap mengetik soal berikutnya
+    renderDaftarSoal();
+  }
+
+  function hapusSoal(nomor) {
+    daftarSoal.splice(nomor, 1); // buang 1 soal pada urutan itu
+    simpanSoal();
+    renderDaftarSoal();
+  }
+
+  function muatUlangSoalBawaan() {
+    daftarSoal = JSON.parse(JSON.stringify(soalContoh));
+    simpanSoal();
+    renderDaftarSoal();
+    tampilkanModal("Daftar soal dikembalikan ke soal contoh.", "Informasi");
+  }
+
+  // Menggambar ulang daftar soal di layar pengaturan
+  function renderDaftarSoal() {
+    const ul = document.getElementById('daftar-soal');
+    ul.innerHTML = "";
+    document.getElementById('jumlah-soal').innerText = daftarSoal.length;
+    if (daftarSoal.length === 0) {
+      ul.innerHTML = '<li class="kosong">Belum ada soal. Tambahkan minimal 1 soal.</li>';
+      return;
+    }
+    daftarSoal.forEach((soal, i) => {
+      const li = document.createElement('li');
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.innerText = 'Kunci ' + soal.kunci;
+      const teks = document.createElement('span');
+      teks.className = 'teks';
+      teks.textContent = (i + 1) + '. ' + soal.pertanyaan;
+      const pilihan = document.createElement('small');
+      pilihan.textContent = 'A: ' + soal.a + '  |  B: ' + soal.b;
+      teks.appendChild(pilihan);
+      const tombol = document.createElement('button');
+      tombol.className = 'btn-hapus';
+      tombol.innerText = 'Hapus';
+      tombol.onclick = () => hapusSoal(i);
+      li.append(tag, teks, tombol);
+      ul.appendChild(li);
+    });
+  }
+
+  // Enter berpindah ke kolom berikutnya; Enter di kolom pilihan B = klik "Tambah Soal"
+  ['input-pertanyaan', 'input-a', 'input-b'].forEach((id, i, semua) => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (i < 2) document.getElementById(semua[i + 1]).focus();
+      else tambahSoal();
+    });
+  });
+
+  renderDaftarSoal(); // tampilkan daftar saat halaman dibuka
+
+  // ----- Pengaturan waktu dan suara (ikut tersimpan di peramban) -----
+  const WAKTU_BAWAAN = 15, TAMPIL_BAWAAN = 5;        // nilai bawaan pengaturan
+  const KUNCI_PENGATURAN = 'pengaturanGameKamera';
+  let pengaturan = bacaPengaturan();
+
+  function bacaPengaturan() {
+    const bawaan = { waktu: WAKTU_BAWAAN, tampil: TAMPIL_BAWAAN, suara: true };
+    try {
+      const data = JSON.parse(localStorage.getItem(KUNCI_PENGATURAN));
+      if (data) return Object.assign(bawaan, data);
+    } catch (e) {}
+    return bawaan;
+  }
+
+  function simpanPengaturan() {
+    try { localStorage.setItem(KUNCI_PENGATURAN, JSON.stringify(pengaturan)); } catch (e) {}
+  }
+
+  // Menulis isi pengaturan ke kolom-kolom di layar pengaturan
+  function tampilkanPengaturan() {
+    document.getElementById('timer-input').value = pengaturan.waktu;
+    document.getElementById('tampil-input').value = pengaturan.tampil;
+    document.getElementById('suara-input').checked = pengaturan.suara;
+  }
+
+  // Membaca kolom di layar pengaturan (dipakai saat Mulai Game)
+  function ambilPengaturan() {
+    const waktu = parseInt(document.getElementById('timer-input').value) || WAKTU_BAWAAN;
+    const tampil = parseInt(document.getElementById('tampil-input').value) || TAMPIL_BAWAAN;
+    pengaturan.waktu = Math.min(120, Math.max(5, waktu));   // 5 sampai 120 detik
+    pengaturan.tampil = Math.min(30, Math.max(2, tampil));  // 2 sampai 30 detik
+    pengaturan.suara = document.getElementById('suara-input').checked;
+    simpanPengaturan();
+    tampilkanPengaturan();
+  }
+
+  function kembalikanBawaan() {
+    pengaturan = { waktu: WAKTU_BAWAAN, tampil: TAMPIL_BAWAAN, suara: true };
+    simpanPengaturan();
+    tampilkanPengaturan();
+    tampilkanModal("Pengaturan kembali ke bawaan: waktu menjawab " + WAKTU_BAWAAN +
+                   " detik, lama tampil jawaban " + TAMPIL_BAWAAN + " detik, dan suara hidup.",
+                   "Informasi");
+  }
+
+  // Tulisan tombol bawaan selalu mengikuti angka WAKTU_BAWAAN dan TAMPIL_BAWAAN
+  // (\u21BA adalah tanda panah melingkar)
+  document.querySelector('.btn-teks').innerText = '\u21BA Kembalikan pengaturan bawaan (' +
+    WAKTU_BAWAAN + ' detik, ' + TAMPIL_BAWAAN + ' detik, suara hidup)';
+
+  tampilkanPengaturan(); // isi kolom dengan pengaturan terakhir
+
+  // ===== TAHAP 4: ARENA, KAMERA, DAN HITUNG MUNDUR =====
+  let soalDiacak = [];       // urutan soal setelah diacak
+  let soalSaatIni = 0;       // urutan soal yang sedang tampil (dimulai dari 0)
+  let waktuTersisa = 0;
+  let intervalTimer = null, intervalBersiap = null, streamKamera = null, timerKursor = null;
+  let sedangTampilJawaban = false; // true selama jawaban sedang ditampilkan
+  let dijeda = false;              // true saat jendela "Keluar" terbuka
+
+  // Menampilkan atau menyembunyikan bagian layar
+  function tampil(id, cara) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = cara;
+  }
+  function arenaTampil() {
+    return document.getElementById('pita').style.display === 'block';
+  }
+
+  // Membunyikan suara, hanya bila Tahap 6 (suara) sudah dibuat
+  function mainkan(nama) {
+    if (typeof bunyi === 'function') bunyi(nama);
+  }
+
+  // Meminta izin dan menyalakan kamera
+  async function setupKamera() {
+    if (streamKamera) return; // kamera sudah menyala
+    try {
+      const ukuran = { video: { width: 1280, height: 720 } };
+      streamKamera = await navigator.mediaDevices.getUserMedia(ukuran);
+      document.getElementById('webcam').srcObject = streamKamera;
+    } catch (err) {
+      tampilkanModal("Kamera tidak terdeteksi atau izin ditolak. Game tetap berjalan, " +
+                     "tetapi pemain tidak terlihat di layar.", "Informasi");
+    }
+  }
+
+  function matikanKamera() {
+    if (streamKamera) { streamKamera.getTracks().forEach(t => t.stop()); streamKamera = null; }
+    document.getElementById('webcam').srcObject = null;
+  }
+
+  // Masuk atau keluar dari layar penuh (diabaikan bila peramban tidak mendukung)
+  function layarPenuh(nyala) {
+    try {
+      if (nyala && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      if (!nyala && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    } catch (e) {}
+  }
+
+  // Kursor tetikus disembunyikan bila tidak digerakkan selama 2 detik saat bermain
+  document.addEventListener('mousemove', () => {
+    document.body.classList.remove('kursor-sembunyi');
+    clearTimeout(timerKursor);
+    if (arenaTampil()) {
+      timerKursor = setTimeout(() => document.body.classList.add('kursor-sembunyi'), 2000);
+    }
+  });
+
+  function mulaiGame() {
+    if (daftarSoal.length === 0) {
+      tampilkanModal("Tambahkan minimal 1 soal terlebih dahulu!", "Peringatan");
+      return;
+    }
+    ambilPengaturan(); // baca waktu menjawab, lama tampil jawaban, dan suara
+    soalSaatIni = 0;
+
+    // Acak urutan soal (cara Fisher-Yates: seperti mengocok kartu)
+    soalDiacak = JSON.parse(JSON.stringify(daftarSoal));
+    for (let i = soalDiacak.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [soalDiacak[i], soalDiacak[j]] = [soalDiacak[j], soalDiacak[i]];
+    }
+
+    // Sembunyikan layar pengaturan, tampilkan arena dalam layar penuh
+    tampil('setup-screen', 'none'); tampil('end-screen', 'none');
+    tampil('webcam', 'block'); tampil('panel-a', 'block'); tampil('panel-b', 'block');
+    tampil('pita', 'block');
+    layarPenuh(true);
+    setupKamera();
+    perbaruiBilah();
+    mulaiBersiap();
+  }
+
+  // Aba-aba "Bersiap 3, 2, 1" sebelum soal pertama
+  function mulaiBersiap() {
+    let angka = 3;
+    document.getElementById('soal-counter').innerText = 'SOAL 1 / ' + soalDiacak.length;
+    document.getElementById('question-text').innerText = 'Bersiap...';
+    document.getElementById('teks-a').innerText = '';
+    document.getElementById('teks-b').innerText = '';
+    tampil('hitung-mundur', 'none');
+    document.getElementById('angka-bersiap').innerText = angka;
+    tampil('bersiap', 'flex');
+    mainkan('bersiap');
+    clearInterval(intervalBersiap);
+    intervalBersiap = setInterval(() => {
+      if (dijeda) return; // berhenti sementara saat jendela "Keluar" terbuka
+      angka--;
+      if (angka > 0) {
+        document.getElementById('angka-bersiap').innerText = angka;
+        mainkan('bersiap');
+      } else {
+        clearInterval(intervalBersiap); intervalBersiap = null;
+        tampil('bersiap', 'none');
+        mainkan('mulai');
+        tampilkanSoal();
+      }
+    }, 1000);
+  }
+
+  function tampilkanSoal() {
+    if (soalSaatIni >= soalDiacak.length) { selesaiGame(); return; } // soal habis
+    const soal = soalDiacak[soalSaatIni];
+    const nomor = 'SOAL ' + (soalSaatIni + 1) + ' / ' + soalDiacak.length;
+    document.getElementById('soal-counter').innerText = nomor;
+    const teksSoal = document.getElementById('question-text');
+    teksSoal.innerText = soal.pertanyaan;
+    // Huruf soal mengecil bila soalnya panjang, agar pita atas tetap rendah
+    const panjang = soal.pertanyaan.length;
+    teksSoal.className = panjang > 130 ? 'sangat-panjang' : (panjang > 70 ? 'panjang' : '');
+    document.getElementById('teks-a').innerText = soal.a;
+    document.getElementById('teks-b').innerText = soal.b;
+    // Kembalikan warna seperti semula
+    document.getElementById('pita').className = '';
+    ['panel-a', 'panel-b'].forEach(id => document.getElementById(id).className = 'panel');
+    ['pilihan-a', 'pilihan-b'].forEach(id => document.getElementById(id).className = 'pilihan');
+    tampil('pengumuman', 'none'); tampil('pengumuman-lanjut', 'none');
+    sedangTampilJawaban = false;
+    waktuTersisa = pengaturan.waktu;
+    const garis = document.getElementById('isi-garis');
+    garis.style.transition = 'none'; // garis waktu langsung penuh lagi tanpa animasi
+    updateTimerDisplay();
+    void garis.offsetWidth;
+    garis.style.transition = '';
+    tampil('hitung-mundur', 'flex'); tampil('garis-waktu', 'block');
+    clearInterval(intervalTimer);
+    intervalTimer = setInterval(hitungMundur, 1000); // jalankan hitungMundur tiap 1 detik
+  }
+
+  function hitungMundur() {
+    if (dijeda) return; // berhenti sementara saat jendela "Keluar" terbuka
+    waktuTersisa--;
+    updateTimerDisplay();
+    if (waktuTersisa > 0 && waktuTersisa <= 3) mainkan('tik');
+    if (waktuTersisa <= 0) {
+      clearInterval(intervalTimer); intervalTimer = null;
+      mainkan('habis');
+      ungkapJawaban(); // waktu habis: tampilkan jawaban yang benar
+    }
+  }
+
+  function updateTimerDisplay() {
+    const angka = document.getElementById('hitung-mundur');
+    const garis = document.getElementById('isi-garis');
+    const akhir = waktuTersisa <= 3;  // merah berdenyut di 3 detik terakhir
+    angka.innerText = waktuTersisa;
+    angka.className = akhir ? 'akhir' : '';
+    garis.className = akhir ? 'akhir' : '';
+    garis.style.width = Math.min(100, waktuTersisa / pengaturan.waktu * 100) + '%';
+  }
+
+  // Menulis info waktu dan status suara di bilah atas
+  function perbaruiBilah() {
+    document.getElementById('info-waktu').innerText =
+      'Waktu per soal: ' + pengaturan.waktu + ' detik';
+    document.getElementById('tombol-suara').innerText =
+      pengaturan.suara ? 'Suara: Hidup' : 'Suara: Mati';
+  }
+
+  // Tombol -5 detik, +5 detik, dan Bawaan di pita atas
+  function ubahWaktu(selisih) {
+    terapkanWaktu(Math.min(120, Math.max(5, pengaturan.waktu + selisih)));
+  }
+  function waktuBawaan() {
+    terapkanWaktu(WAKTU_BAWAAN);
+  }
+  // Waktu per soal berubah; sisa waktu soal yang sedang berjalan ikut bergeser
+  function terapkanWaktu(baru) {
+    const geser = baru - pengaturan.waktu;
+    pengaturan.waktu = baru;
+    simpanPengaturan();
+    tampilkanPengaturan();
+    perbaruiBilah();
+    if (intervalTimer) {
+      waktuTersisa = Math.max(1, waktuTersisa + geser);
+      updateTimerDisplay();
+    }
+  }
+
+  // ===== TAHAP 5: JAWABAN, KELUAR, DAN AKHIR PERMAINAN =====
+  let sisaJeda = 0, intervalJeda = null;
+
+  // Dipanggil saat waktu habis: sisi benar menjadi biru, sisi salah menjadi merah
+  function ungkapJawaban() {
+    sedangTampilJawaban = true;
+    const soal = soalDiacak[soalSaatIni];
+    const benar = soal.kunci;                    // 'A' atau 'B'
+    const salah = (benar === 'A') ? 'B' : 'A';
+    const teksBenar = (benar === 'A') ? soal.a : soal.b;
+    document.getElementById('panel-' + benar.toLowerCase()).className = 'panel benar';
+    document.getElementById('panel-' + salah.toLowerCase()).className = 'panel salah';
+    document.getElementById('pilihan-' + benar.toLowerCase()).className = 'pilihan benar';
+    document.getElementById('pilihan-' + salah.toLowerCase()).className = 'pilihan salah';
+    document.getElementById('pengumuman').innerText =
+      'Jawaban ' + benar + ' yang benar: ' + teksBenar;
+    document.getElementById('pita').className = 'saat-jawaban';
+    tampil('hitung-mundur', 'none'); tampil('garis-waktu', 'none');
+    tampil('pengumuman', 'block'); tampil('pengumuman-lanjut', 'block');
+    mainkan('jawaban');
+
+    // Hitung mundur jeda, lalu lanjut otomatis
+    sisaJeda = pengaturan.tampil;
+    tulisJeda();
+    clearInterval(intervalJeda);
+    intervalJeda = setInterval(() => {
+      if (dijeda) return; // berhenti sementara saat jendela "Keluar" terbuka
+      sisaJeda--;
+      if (sisaJeda <= 0) lanjutSoal();
+      else tulisJeda();
+    }, 1000);
+  }
+
+  function tulisJeda() {
+    const soalTerakhir = (soalSaatIni + 1 >= soalDiacak.length);
+    const tujuan = soalTerakhir ? 'Permainan selesai' : 'Soal berikutnya';
+    document.getElementById('pengumuman-lanjut').innerText = tujuan + ' dalam ' + sisaJeda +
+      ' detik. Sentuh layar atau tekan Spasi untuk lanjut.';
+  }
+
+  function lanjutSoal() {
+    if (!sedangTampilJawaban || dijeda) return; // hanya saat jawaban tampil
+    clearInterval(intervalJeda);
+    sedangTampilJawaban = false;
+    soalSaatIni++;
+    tampilkanSoal();
+  }
+
+  // Tombol Keluar: hentikan waktu sementara dan tanyakan dulu
+  function mintaKeluar() {
+    dijeda = true;
+    tampil('dialog-keluar', 'flex');
+  }
+  function tutupDialogKeluar() {
+    dijeda = false;
+    tampil('dialog-keluar', 'none');
+  }
+
+  // Menyembunyikan semua bagian arena
+  function sembunyikanArena() {
+    clearInterval(intervalTimer); clearInterval(intervalJeda); clearInterval(intervalBersiap);
+    intervalTimer = null; intervalBersiap = null;
+    sedangTampilJawaban = false; dijeda = false;
+    tampil('pita', 'none'); tampil('bersiap', 'none'); tampil('dialog-keluar', 'none');
+    tampil('panel-a', 'none'); tampil('panel-b', 'none');
+    document.body.classList.remove('kursor-sembunyi');
+  }
+
+  function selesaiGame() {
+    sembunyikanArena();
+    layarPenuh(false);
+    mainkan('selesai');
+    document.getElementById('skor-akhir').innerText = soalDiacak.length;
+    document.getElementById('rincian-akhir').innerText = 'soal sudah dimainkan. Terima kasih!';
+    tampil('end-screen', 'flex');
+  }
+
+  function kembaliKeMenu() {
+    sembunyikanArena();
+    layarPenuh(false);
+    matikanKamera();
+    tampil('webcam', 'none'); tampil('end-screen', 'none');
+    tampil('setup-screen', 'flex');
+    renderDaftarSoal();
+  }
+
+  // Sentuh atau klik di layar saat jawaban tampil = lanjut lebih cepat
+  // (klik pada tombol di pita atas tidak dihitung)
+  document.addEventListener('click', e => {
+    if (e.target.closest('button')) return;
+    if (sedangTampilJawaban) lanjutSoal();
+  });
+
+  // Spasi atau Enter saat jawaban tampil = lanjut lebih cepat
+  document.addEventListener('keydown', e => {
+    if (!arenaTampil() || dijeda) return;
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault(); // cegah tombol di pita atas ikut tertekan
+      if (sedangTampilJawaban) lanjutSoal();
+    }
+  });
+
+  // ===== TAHAP 6: SUARA PERMAINAN =====
+  // Suara dibuat langsung oleh peramban (tanpa file suara, tanpa internet)
+  let konteksSuara = null;
+
+  // Satu nada: frekuensi (Hz), mulai (detik dari sekarang), lama, jenis gelombang, kekerasan
+  function nada(frekuensi, mulai, lama, jenis, kekerasan) {
+    const k = konteksSuara;
+    const osilator = k.createOscillator();
+    const volume = k.createGain();
+    const t = k.currentTime + mulai;
+    osilator.type = jenis || 'sine';
+    osilator.frequency.value = frekuensi;
+    volume.gain.setValueAtTime(0.0001, t);
+    volume.gain.exponentialRampToValueAtTime(kekerasan || 0.25, t + 0.02); // muncul
+    volume.gain.exponentialRampToValueAtTime(0.0001, t + lama);           // memudar
+    osilator.connect(volume);
+    volume.connect(k.destination);
+    osilator.start(t);
+    osilator.stop(t + lama + 0.05);
+  }
+
+  // Daftar bunyi yang dipakai game
+  function bunyi(nama) {
+    if (!pengaturan.suara) return; // suara dimatikan
+    try {
+      if (!konteksSuara) konteksSuara = new (window.AudioContext || window.webkitAudioContext)();
+      if (konteksSuara.state === 'suspended') konteksSuara.resume();
+    } catch (e) { return; } // peramban tidak mendukung suara
+    if (nama === 'bersiap') nada(660, 0, 0.2);
+    if (nama === 'mulai') { nada(523, 0, 0.15); nada(659, 0.12, 0.15); nada(784, 0.24, 0.35); }
+    if (nama === 'tik') {
+      const tinggi = { 3: 880, 2: 988, 1: 1175 }[waktuTersisa] || 880; // makin tinggi
+      nada(tinggi, 0, 0.1, 'square', 0.12);
+    }
+    if (nama === 'habis') { nada(196, 0, 0.5, 'sawtooth', 0.22); nada(147, 0, 0.5, 'square', 0.1); }
+    if (nama === 'jawaban') { nada(784, 0.15, 0.15); nada(1047, 0.28, 0.45); }
+    if (nama === 'selesai') {
+      [523, 659, 784, 1047].forEach((f, i) => nada(f, i * 0.14, 0.3));
+      nada(1047, 0.6, 0.7);
+    }
+  }
+
+  // Tombol "Suara" di pita atas: hidup atau mati
+  function aturSuara() {
+    pengaturan.suara = !pengaturan.suara;
+    simpanPengaturan();
+    tampilkanPengaturan();
+    perbaruiBilah();
+    bunyi('bersiap'); // bunyi contoh saat suara dihidupkan
+  }
+
+  // ===TEMPEL JAVASCRIPT DI ATAS BARIS INI===
+</script>
+</body>
+</html>
